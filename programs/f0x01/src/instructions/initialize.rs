@@ -9,7 +9,7 @@ pub struct InitializeProgram<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 32 + 1 + 8 + 8 + 8 + 32,
+        space = FocusProgram::SPACE,
         seeds = [b"focus_program"],
         bump
     )]
