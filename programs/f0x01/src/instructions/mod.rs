@@ -6,3 +6,6 @@ pub use user::*;
 
 pub mod commitment;
 pub use commitment::*;
+
+pub mod session;
+pub use session::*;

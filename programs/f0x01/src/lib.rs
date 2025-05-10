@@ -39,4 +39,17 @@ pub mod f0x01 {
         instructions::commitment::create_commitment(ctx, commitment_id, amount, sessions_per_day, total_days)
     }
 
+     pub fn claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
+        instructions::commitment::claim_rewards(ctx)
+    }
+
+    //session management
+    pub fn start_session(ctx: Context<StartSession>, session_id: u64) -> Result<()> {
+        instructions::session::start_session(ctx, session_id)
+    }
+
+    pub fn complete_session(ctx: Context<CompleteSession>) -> Result<()> {
+        instructions::session::complete_session(ctx)
+    }
+
 }
