@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 // use anchor_spl::token::{Mint, Token};
-use anchor_spl::token::{self, Mint, InitializeMint, Token};
+use anchor_spl::token::{Mint, Token};
 use crate::state::*;
-use crate::error::*;
+// use crate::error::*;
 
 #[derive(Accounts)]
 pub struct InitializeProgram<'info> {

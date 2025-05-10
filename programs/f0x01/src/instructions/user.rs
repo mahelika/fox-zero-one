@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
-use crate::error::*;
+// use crate::error::*;
 
 #[derive(Accounts)]
 pub struct CreateUserProfile<'info> {

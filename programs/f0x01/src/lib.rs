@@ -29,4 +29,14 @@ pub mod f0x01 {
         instructions::user::create_user_profile(ctx)
     }
 
+      pub fn create_commitment(
+        ctx: Context<CreateCommitment>,
+        commitment_id: u64,
+        amount: u64,
+        sessions_per_day: u8,
+        total_days: u8,
+    ) -> Result<()> {
+        instructions::commitment::create_commitment(ctx, commitment_id, amount, sessions_per_day, total_days)
+    }
+
 }
