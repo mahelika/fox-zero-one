@@ -1,12 +1,14 @@
+#![allow(unexpected_cfgs)]
+use anchor_lang::prelude::*;
+
+use crate::instructions::*;
+
 pub mod constants;
 pub mod error;
 pub mod instructions;
 pub mod state;
 
-use anchor_lang::prelude::*;
-
 pub use constants::*;
-pub use instructions::*;
 pub use state::*;
 
 declare_id!("2UimA9XeFtc4e16WnkwaFkhv8KSQdWr7CGEKk7hDpKea");
