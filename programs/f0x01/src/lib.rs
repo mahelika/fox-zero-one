@@ -23,4 +23,8 @@ pub mod f0x01 {
         instructions::initialize_program(ctx, reward_rate)
     }
 
+     pub fn create_user_profile(ctx: Context<CreateUserProfile>) -> Result<()> {
+        instructions::user::create_user_profile(ctx)
+    }
+
 }
