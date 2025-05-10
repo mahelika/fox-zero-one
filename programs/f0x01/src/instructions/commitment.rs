@@ -46,7 +46,8 @@ pub struct CreateCommitment<'info> {
     )]
     pub vault: Account<'info, TokenAccount>,
     
-    ///CHECK: PDA that acts as the vault authority
+    /// CHECK: this is a PDA that acts as the vault authority and doesn't need type checking
+    /// as it's not expected to be a deserialized account with specific data
     #[account(
         seeds = [b"vault_authority"],
         bump
@@ -139,7 +140,8 @@ pub struct ClaimRewards<'info> {
     )]
     pub vault: Account<'info, TokenAccount>,
     
-    ///CHECK: PDA that acts as the vault authority
+    /// CHECK: this is a PDA that acts as the vault authority and doesn't need type checking
+    /// as it's used only as a signer for token transfers
     #[account(
         seeds = [b"vault_authority"],
         bump
