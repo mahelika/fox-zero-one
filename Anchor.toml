@@ -15,4 +15,5 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+# runs test in specific order.
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/initialize.ts tests/user.ts tests/commitment.ts tests/session.ts"
