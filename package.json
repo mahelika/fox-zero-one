@@ -1,20 +1,41 @@
 {
-  "license": "ISC",  
+  "license": "ISC",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
-  },
-  "dependencies": {
-    "@coral-xyz/anchor": "^0.30.1"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "test": "mocha -r ts-node/register tests/**/*.ts"
   },
   "devDependencies": {
-    "chai": "^4.3.4",
-    "mocha": "^9.0.3",
-    "ts-mocha": "^10.0.0",
+    "@coral-xyz/anchor": "^0.31.1",
+    "@solana/web3.js": "^1.98.2",
     "@types/bn.js": "^5.1.0",
-    "@types/chai": "^4.3.0",
-    "@types/mocha": "^9.0.0",
-    "typescript": "^4.3.5",
-    "prettier": "^2.6.2"
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^9.1.1",
+    "chai": "^4.5.0",
+    "mocha": "^11.2.2",
+    "prettier": "^2.6.2",
+    "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^4.9.5"
+  },
+  "name": "fox-zero-one",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mahelika/fox-zero-one.git"
+  },
+  "keywords": [],
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/mahelika/fox-zero-one/issues"
+  },
+  "homepage": "https://github.com/mahelika/fox-zero-one#readme",
+  "description": "",
+  "dependencies": {
+    "@solana/spl-token": "^0.4.13"
   }
 }
