@@ -30,7 +30,7 @@ describe("F0x01 Commitment Tests", () => {
   const totalDays = 2;
   
   before(async () => {
-    console.log("Setting up test accounts...");
+    // console.log("setting up test accounts..");
     
     //find the focus_program PDA
     [focusProgramPda] = PublicKey.findProgramAddressSync(
@@ -266,11 +266,11 @@ describe("F0x01 Commitment Tests", () => {
         program.programId
       );
       
-      console.log("In a real test environment:");
-      console.log("1. We would advance the clock by totalDays + 1 days");
-      console.log("2. Call claimRewards instruction");
-      console.log("3. Verify tokens returned to user account");
-      console.log("4. Verify commitment marked as inactive");
+      // console.log("In a real test environment:");
+      // console.log("1. We would advance the clock by totalDays + 1 days");
+      // console.log("2. Call claimRewards instruction");
+      // console.log("3. Verify tokens returned to user account");
+      // console.log("4. Verify commitment marked as inactive");
        
     } catch (error) {
       console.error("Error claiming rewards:", error);
