@@ -60,17 +60,17 @@ describe("F0x01 User Profile Tests", () => {
       program.programId
     );
     
-    console.log("Focus Program PDA:", focusProgramPda.toString());
-    console.log("User Keypair:", userKeypair.publicKey.toString());
-    console.log("User Profile PDA:", userProfilePda.toString());
+    // console.log("Focus Program PDA:", focusProgramPda.toString());
+    // console.log("User Keypair:", userKeypair.publicKey.toString());
+    // console.log("User Profile PDA:", userProfilePda.toString());
     
     //ensure the program is initialized
     try {
       const programAccount = await program.account.focusProgram.fetch(focusProgramPda);
-      console.log("Program already initialized with", programAccount.totalUsers.toString(), "users");
+      // console.log("Program already initialized with", programAccount.totalUsers.toString(), "users");
       focusTokenMint = programAccount.focusTokenMint;
     } catch (error) {
-      console.log("Initializing program...");
+      // console.log("Initializing program...");
       
       //create a token mint for initialization
       const mintKeypair = Keypair.generate();
@@ -90,7 +90,7 @@ describe("F0x01 User Profile Tests", () => {
         .signers([mintKeypair])
         .rpc();
       
-      console.log("Program initialized with token mint:", focusTokenMint.toString());
+      // console.log("Program initialized with token mint:", focusTokenMint.toString());
     }
   });
   
@@ -115,7 +115,7 @@ describe("F0x01 User Profile Tests", () => {
         .signers([userKeypair])
         .rpc();
       
-      console.log("Transaction signature:", tx);
+      // console.log("Transaction signature:", tx);
       
       //fetch the user profile to verify it was created correctly
       const userProfile = await program.account.userProfile.fetch(userProfilePda);
@@ -203,7 +203,7 @@ describe("F0x01 User Profile Tests", () => {
         .signers([anotherUserKeypair])
         .rpc();
       
-      console.log("Transaction signature for second user:", tx);
+      // console.log("Transaction signature for second user:", tx);
       
       // fetch the user profile to verify it was created correctly
       const userProfile = await program.account.userProfile.fetch(anotherUserProfilePda);
@@ -261,7 +261,7 @@ describe("F0x01 User Profile Tests", () => {
       // the exact error message may vary by Solana version/provider
       // just verify an error was thrown - the specific message isn't critical
       //as long as the operation failed as expected
-      console.log("Received expected error for insufficient funds:", error.toString().substring(0, 150) + "...");
+      // console.log("Received expected error for insufficient funds:", error.toString().substring(0, 150) + "...");
       expect(error).to.exist;
     }
   });

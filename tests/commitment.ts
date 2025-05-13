@@ -34,7 +34,7 @@ describe("F0x01 Commitment Tests", () => {
   let vaultAuthorityPda: PublicKey;
 
   before(async () => {
-    console.log("Setting up additional test environment...");
+    // console.log("Setting up additional test environment...");
 
     //find the focus_program PDA
     [focusProgramPda] = PublicKey.findProgramAddressSync(
@@ -83,7 +83,7 @@ describe("F0x01 Commitment Tests", () => {
           tokenMint,
           userKeypair.publicKey
         );
-        console.log("Created user token account:", userTokenAccount.toString());
+        // console.log("Created user token account:", userTokenAccount.toString());
       }
 
       //mint tokens to user account for testing
@@ -97,7 +97,7 @@ describe("F0x01 Commitment Tests", () => {
         mintAmount
       );
 
-      console.log(`Minted ${mintAmount / 1_000_000} tokens to user account`);
+      // console.log(`Minted ${mintAmount / 1_000_000} tokens to user account`);
     } catch (error) {
       console.error("Error setting up token accounts:", error);
       throw error;
@@ -108,7 +108,7 @@ describe("F0x01 Commitment Tests", () => {
       await program.account.userProfile.fetch(userProfilePda);
       console.log("User profile already exists");
     } catch (error) {
-      console.log("Creating user profile...");
+      // console.log("Creating user profile...");
 
       await program.methods
         .createUserProfile()
@@ -121,7 +121,7 @@ describe("F0x01 Commitment Tests", () => {
         .signers([userKeypair])
         .rpc();
 
-      console.log("User profile created");
+      // console.log("User profile created");
     }
 
     //pre-compute PDAs for commitments
@@ -179,7 +179,7 @@ describe("F0x01 Commitment Tests", () => {
         .signers([userKeypair])
         .rpc();
 
-      console.log("Created commitment with minimum parameters, tx:", tx);
+      // console.log("Created commitment with minimum parameters, tx:", tx);
 
       //verify the commitment was created correctly
       const commitment = await program.account.focusCommitment.fetch(commitmentPda);
@@ -247,7 +247,7 @@ describe("F0x01 Commitment Tests", () => {
         .signers([userKeypair])
         .rpc();
 
-      console.log("Created commitment with maximum parameters, tx:", tx);
+      // console.log("Created commitment with maximum parameters, tx:", tx);
 
       //verify the commitment was created correctly
       const commitment = await program.account.focusCommitment.fetch(maxCommitmentPda);
@@ -363,7 +363,7 @@ describe("F0x01 Commitment Tests", () => {
       assert.fail("Should have failed due to insufficient funds");
     } catch (error) {
       //expected to fail with insufficient funds error
-      console.log("Correctly failed with insufficient funds error");
+      // console.log("Correctly failed with insufficient funds error");
       expect(error.message).to.include("Error");
     }
   });
@@ -427,7 +427,7 @@ describe("F0x01 Commitment Tests", () => {
           .signers([userKeypair])
           .rpc();
 
-        console.log(`Created commitment ${i + 1}, tx:`, tx);
+        // console.log(`Created commitment ${i + 1}, tx:`, tx);
 
         //verify the commitment was created correctly
         const commitment = await program.account.focusCommitment.fetch(commitmentPdas[i]);
@@ -445,7 +445,7 @@ describe("F0x01 Commitment Tests", () => {
     //verify that all commitments exist for this user
     //tests that the program correctly handles multiple active commitments per user
     const fetchedProgram = await program.account.focusProgram.fetch(focusProgramPda);
-    console.log(`Program total staked: ${fetchedProgram.totalStaked.toString()}`);
+    // console.log(`Program total staked: ${fetchedProgram.totalStaked.toString()}`);
   });
 
 
@@ -470,7 +470,7 @@ describe("F0x01 Commitment Tests", () => {
         wallet.publicKey,
         200_000_000 //mint additional 200 tokens for testing
       );
-      console.log("Minted additional tokens to ensure sufficient funds");
+      // console.log("Minted additional tokens to ensure sufficient funds");
     } catch (error) {
       console.error("Error minting additional tokens:", error);
     }
@@ -501,7 +501,7 @@ describe("F0x01 Commitment Tests", () => {
       try {
         //check user's token balance before creating commitment
         const balanceBefore = await provider.connection.getTokenAccountBalance(userTokenAccount);
-        console.log(`User balance before commitment ${i + 1}: ${balanceBefore.value.amount}`);
+        // console.log(`User balance before commitment ${i + 1}: ${balanceBefore.value.amount}`);
 
         //create commitment with different stake amount
         const tx = await program.methods
@@ -527,7 +527,7 @@ describe("F0x01 Commitment Tests", () => {
           .signers([userKeypair])
           .rpc();
 
-        console.log(`Created commitment with stake ${stake.toString()}, tx:`, tx);
+        // console.log(`Created commitment with stake ${stake.toString()}, tx:`, tx);
 
         //verify commitment was created with correct stake amount
         const commitment = await program.account.focusCommitment.fetch(cPda);
@@ -539,7 +539,7 @@ describe("F0x01 Commitment Tests", () => {
 
         //check user's token balance after creating commitment
         const balanceAfter = await provider.connection.getTokenAccountBalance(userTokenAccount);
-        console.log(`User balance after commitment ${i + 1}: ${balanceAfter.value.amount}`);
+        // console.log(`User balance after commitment ${i + 1}: ${balanceAfter.value.amount}`);
       } catch (error) {
         console.error(`Error creating commitment with stake ${stake.toString()}:`, error);
         throw error;
@@ -626,7 +626,7 @@ describe("F0x01 Commitment Tests", () => {
       assert.fail("Should have failed due to invalid token account");
     } catch (error) {
       //expected to fail due to constraint violation
-      console.log("Correctly failed with token account constraint violation");
+      // console.log("Correctly failed with token account constraint violation");
       expect(error.message).to.include("Error");
     }
   });
@@ -661,151 +661,302 @@ describe("F0x01 Commitment Tests", () => {
       assert.fail("Should have failed due to duplicate commitment ID");
     } catch (error) {
       //expected to fail because account already exists
-      console.log("Correctly failed with account already exists error");
+      // console.log("Correctly failed with account already exists error");
       expect(error.message).to.include("Error");
     }
   });
 
   //test 8: advanced - test simulation of completing a commitment with mocked time
+  // it("Simulates completing a commitment and claiming rewards", async () => {
+  //   //this test only works for simulating, as we can't manipulate blockchain time
+  //   //create a special commitment for this test
+  //   const simulationId = new anchor.BN(109);
+
+  //   //find PDAs for this commitment
+  //   const [simCommitmentPda] = PublicKey.findProgramAddressSync(
+  //     [
+  //       Buffer.from("commitment"),
+  //       userKeypair.publicKey.toBuffer(),
+  //       simulationId.toArrayLike(Buffer, "le", 8)
+  //     ],
+  //     program.programId
+  //   );
+
+  //   const [simVaultPda] = PublicKey.findProgramAddressSync(
+  //     [
+  //       Buffer.from("vault"),
+  //       userKeypair.publicKey.toBuffer(),
+  //       simulationId.toArrayLike(Buffer, "le", 8)
+  //     ],
+  //     program.programId
+  //   );
+
+  //   //create the simulation commitment
+  //   try {
+  //     await program.methods
+  //       .createCommitment(
+  //         simulationId,
+  //         stakeAmount,
+  //         2, // 2 sessions per day
+  //         1  // 1 day (shortest possible for simulation)
+  //       )
+  //       .accountsStrict({
+  //         commitment: simCommitmentPda,
+  //         userProfile: userProfilePda,
+  //         focusProgram: focusProgramPda,
+  //         user: userKeypair.publicKey,
+  //         userTokenAccount: userTokenAccount,
+  //         vault: simVaultPda,
+  //         vaultAuthority: vaultAuthorityPda,
+  //         tokenMint: tokenMint,
+  //         tokenProgram: TOKEN_PROGRAM_ID,
+  //         systemProgram: SystemProgram.programId,
+  //         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+  //       })
+  //       .signers([userKeypair])
+  //       .rpc();
+
+  //     console.log("Created simulation commitment");
+
+  //     // get the commitment data
+  //     const commitment = await program.account.focusCommitment.fetch(simCommitmentPda);
+  //     console.log("Commitment:", {
+  //       id: commitment.commitmentId.toString(),
+  //       amountStaked: commitment.amountStaked.toString(),
+  //       sessionsPerDay: commitment.sessionsPerDay,
+  //       totalDays: commitment.totalDays,
+  //       startTimestamp: commitment.startTimestamp.toString()
+  //     });
+
+  //     //get the program details
+  //     const programData = await program.account.focusProgram.fetch(focusProgramPda);
+  //     console.log("Program reward rate:", programData.rewardRate.toString());
+
+  //     //simulate the logic that would happen in the claim_rewards function
+  //     const totalExpectedSessions = commitment.sessionsPerDay * commitment.totalDays;
+
+  //     console.log("\nREWARD SIMULATION:");
+
+  //     //simulate different completion rates
+  //     const scenarios = [
+  //       { name: "90%+ completion", completedSessions: Math.ceil(totalExpectedSessions * 0.9) },
+  //       { name: "75-89% completion", completedSessions: Math.ceil(totalExpectedSessions * 0.8) },
+  //       { name: "<75% completion", completedSessions: Math.floor(totalExpectedSessions * 0.6) }
+  //     ];
+
+  //     for (const scenario of scenarios) {
+  //       const successRate = scenario.completedSessions / totalExpectedSessions;
+
+  //       let rewardAmount;
+  //       if (successRate >= 0.9) {
+  //         //complete reward + bonus
+  //         const baseReward = commitment.amountStaked.toNumber();
+  //         const bonus = (baseReward * programData.rewardRate.toNumber()) / 100;
+  //         rewardAmount = baseReward + bonus;
+  //       } else if (successRate >= 0.75) {
+  //         //return original stake
+  //         rewardAmount = commitment.amountStaked.toNumber();
+  //       } else {
+  //         //partial refund
+  //         rewardAmount = (commitment.amountStaked.toNumber() * 75) / 100;
+  //       }
+
+  //       console.log(`Scenario: ${scenario.name}`);
+  //       console.log(`- Completed sessions: ${scenario.completedSessions}/${totalExpectedSessions}`);
+  //       console.log(`- Success rate: ${(successRate * 100).toFixed(2)}%`);
+  //       console.log(`- Reward amount: ${rewardAmount / 1_000_000} tokens`);
+  //       console.log(`- Original stake: ${commitment.amountStaked.toNumber() / 1_000_000} tokens`);
+  //       if (rewardAmount > commitment.amountStaked.toNumber()) {
+  //         console.log(`- Bonus earned: ${(rewardAmount - commitment.amountStaked.toNumber()) / 1_000_000} tokens`);
+  //       } else if (rewardAmount < commitment.amountStaked.toNumber()) {
+  //         console.log(`- Penalty: ${(commitment.amountStaked.toNumber() - rewardAmount) / 1_000_000} tokens`);
+  //       }
+  //       console.log("---");
+  //     }
+
+  //   } catch (error) {
+  //     console.error("Error in commitment simulation:", error);
+  //     throw error;
+  //   }
+  // });
   it("Simulates completing a commitment and claiming rewards", async () => {
-    //this test only works for simulating, as we can't manipulate blockchain time
-    //create a special commitment for this test
-    const simulationId = new anchor.BN(109);
+  // This test simulates reward calculations based on session completion without manipulating blockchain time
+  
+  // Create a special commitment with clear parameters for this test simulation
+  const simulationId = new anchor.BN(109);
+  const sessionsPerDay = 2;
+  const totalDays = 1;
+  const totalExpectedSessions = sessionsPerDay * totalDays;
+  
+  // Use a round number amount for easier calculation display
+  const stakeAmount = new anchor.BN(100_000_000); // 100 tokens (assuming 6 decimals)
 
-    //find PDAs for this commitment
-    const [simCommitmentPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("commitment"),
-        userKeypair.publicKey.toBuffer(),
-        simulationId.toArrayLike(Buffer, "le", 8)
-      ],
-      program.programId
-    );
+  // Find PDAs for this commitment
+  const [simCommitmentPda] = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("commitment"),
+      userKeypair.publicKey.toBuffer(),
+      simulationId.toArrayLike(Buffer, "le", 8)
+    ],
+    program.programId
+  );
 
-    const [simVaultPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("vault"),
-        userKeypair.publicKey.toBuffer(),
-        simulationId.toArrayLike(Buffer, "le", 8)
-      ],
-      program.programId
-    );
+  const [simVaultPda] = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("vault"),
+      userKeypair.publicKey.toBuffer(),
+      simulationId.toArrayLike(Buffer, "le", 8)
+    ],
+    program.programId
+  );
 
-    //create the simulation commitment
-    try {
-      await program.methods
-        .createCommitment(
-          simulationId,
-          stakeAmount,
-          2, // 2 sessions per day
-          1  // 1 day (shortest possible for simulation)
-        )
-        .accountsStrict({
-          commitment: simCommitmentPda,
-          userProfile: userProfilePda,
-          focusProgram: focusProgramPda,
-          user: userKeypair.publicKey,
-          userTokenAccount: userTokenAccount,
-          vault: simVaultPda,
-          vaultAuthority: vaultAuthorityPda,
-          tokenMint: tokenMint,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        })
-        .signers([userKeypair])
-        .rpc();
+  try {
+    // Create the simulation commitment
+    await program.methods
+      .createCommitment(
+        simulationId,
+        stakeAmount,
+        sessionsPerDay,
+        totalDays
+      )
+      .accountsStrict({
+        commitment: simCommitmentPda,
+        userProfile: userProfilePda,
+        focusProgram: focusProgramPda,
+        user: userKeypair.publicKey,
+        userTokenAccount: userTokenAccount,
+        vault: simVaultPda,
+        vaultAuthority: vaultAuthorityPda,
+        tokenMint: tokenMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      })
+      .signers([userKeypair])
+      .rpc();
 
-      console.log("Created simulation commitment");
+    // Get the commitment data
+    const commitment = await program.account.focusCommitment.fetch(simCommitmentPda);
+    
+    // Get the program details
+    const programData = await program.account.focusProgram.fetch(focusProgramPda);
+    const rewardRate = programData.rewardRate.toNumber();
+    
+    // Display commitment details clearly
+    // console.log("\n=== COMMITMENT SIMULATION DETAILS ===");
+    // console.log(`Commitment ID: ${commitment.commitmentId.toString()}`);
+    // console.log(`Amount Staked: ${commitment.amountStaked.toNumber() / 1_000_000} tokens`);
+    // console.log(`Sessions Required: ${sessionsPerDay} per day for ${totalDays} day(s)`);
+    // console.log(`Total Required Sessions: ${totalExpectedSessions}`);
+    // console.log(`Program Reward Rate: ${rewardRate}%`);
+    // console.log("=====================================\n");
 
-      // get the commitment data
-      const commitment = await program.account.focusCommitment.fetch(simCommitmentPda);
-      console.log("Commitment:", {
-        id: commitment.commitmentId.toString(),
-        amountStaked: commitment.amountStaked.toString(),
-        sessionsPerDay: commitment.sessionsPerDay,
-        totalDays: commitment.totalDays,
-        startTimestamp: commitment.startTimestamp.toString()
-      });
+    // Simulate the logic that would happen in the claim_rewards function
+    // console.log("=== REWARD SIMULATION SCENARIOS ===");
 
-      //get the program details
-      const programData = await program.account.focusProgram.fetch(focusProgramPda);
-      console.log("Program reward rate:", programData.rewardRate.toString());
+    // Clear scenario definitions with exact thresholds and session counts
+    const scenarios = [
+      { 
+        name: "High Completion (90%+)", 
+        completedSessions: totalExpectedSessions, // 100% completion
+        description: "User completes 90% or more of required sessions"
+      },
+      { 
+        name: "Medium Completion (75-89%)", 
+        completedSessions: Math.floor(totalExpectedSessions * 0.8), // 80% completion
+        description: "User completes between 75% and 89% of required sessions"
+      },
+      { 
+        name: "Low Completion (<75%)", 
+        completedSessions: Math.floor(totalExpectedSessions * 0.5), // 50% completion
+        description: "User completes less than 75% of required sessions"
+      }
+    ];
 
-      //simulate the logic that would happen in the claim_rewards function
-      const totalExpectedSessions = commitment.sessionsPerDay * commitment.totalDays;
-
-      console.log("\nREWARD SIMULATION:");
-
-      //simulate different completion rates
-      const scenarios = [
-        { name: "90%+ completion", completedSessions: Math.ceil(totalExpectedSessions * 0.9) },
-        { name: "75-89% completion", completedSessions: Math.ceil(totalExpectedSessions * 0.8) },
-        { name: "<75% completion", completedSessions: Math.floor(totalExpectedSessions * 0.6) }
-      ];
-
-      for (const scenario of scenarios) {
-        const successRate = scenario.completedSessions / totalExpectedSessions;
-
-        let rewardAmount;
-        if (successRate >= 0.9) {
-          //complete reward + bonus
-          const baseReward = commitment.amountStaked.toNumber();
-          const bonus = (baseReward * programData.rewardRate.toNumber()) / 100;
-          rewardAmount = baseReward + bonus;
-        } else if (successRate >= 0.75) {
-          //return original stake
-          rewardAmount = commitment.amountStaked.toNumber();
-        } else {
-          //partial refund
-          rewardAmount = (commitment.amountStaked.toNumber() * 75) / 100;
-        }
-
-        console.log(`Scenario: ${scenario.name}`);
-        console.log(`- Completed sessions: ${scenario.completedSessions}/${totalExpectedSessions}`);
-        console.log(`- Success rate: ${(successRate * 100).toFixed(2)}%`);
-        console.log(`- Reward amount: ${rewardAmount / 1_000_000} tokens`);
-        console.log(`- Original stake: ${commitment.amountStaked.toNumber() / 1_000_000} tokens`);
-        if (rewardAmount > commitment.amountStaked.toNumber()) {
-          console.log(`- Bonus earned: ${(rewardAmount - commitment.amountStaked.toNumber()) / 1_000_000} tokens`);
-        } else if (rewardAmount < commitment.amountStaked.toNumber()) {
-          console.log(`- Penalty: ${(commitment.amountStaked.toNumber() - rewardAmount) / 1_000_000} tokens`);
-        }
-        console.log("---");
+    for (const scenario of scenarios) {
+      const successRate = scenario.completedSessions / totalExpectedSessions;
+      const successRatePercentage = (successRate * 100).toFixed(2);
+      
+      // Calculate rewards based on completion thresholds
+      let rewardAmount, rewardDescription;
+      
+      if (successRate >= 0.9) {
+        // Full stake back plus bonus
+        const baseStake = commitment.amountStaked.toNumber();
+        const bonus = (baseStake * rewardRate) / 100;
+        rewardAmount = baseStake + bonus;
+        rewardDescription = "Full stake returned plus bonus";
+      } else if (successRate >= 0.75) {
+        // Return original stake only
+        rewardAmount = commitment.amountStaked.toNumber();
+        rewardDescription = "Full stake returned (no bonus)";
+      } else {
+        // Partial refund (75% of stake)
+        rewardAmount = Math.floor(commitment.amountStaked.toNumber() * 0.75);
+        rewardDescription = "Partial stake returned (75% of original)";
       }
 
-    } catch (error) {
-      console.error("Error in commitment simulation:", error);
-      throw error;
+      const originalStakeTokens = commitment.amountStaked.toNumber() / 1_000_000;
+      const rewardAmountTokens = rewardAmount / 1_000_000;
+      
+      // Format and display the results clearly
+      // console.log(`\n--- SCENARIO: ${scenario.name} ---`);
+      // console.log(`Description: ${scenario.description}`);
+      // console.log(`Sessions Completed: ${scenario.completedSessions}/${totalExpectedSessions}`);
+      // console.log(`Completion Rate: ${successRatePercentage}%`);
+      // console.log(`Reward Policy: ${rewardDescription}`);
+      // console.log(`Original Stake: ${originalStakeTokens} tokens`);
+      // console.log(`Total Reward: ${rewardAmountTokens} tokens`);
+      
+      // Calculate and display the difference from original stake
+      // const difference = rewardAmount - commitment.amountStaked.toNumber();
+      // if (difference > 0) {
+      //   console.log(`Bonus Earned: +${difference / 1_000_000} tokens (${rewardRate}% of stake)`);
+      // } else if (difference < 0) {
+      //   console.log(`Penalty Applied: -${Math.abs(difference) / 1_000_000} tokens (25% of stake)`);
+      // } else {
+      //   console.log(`Net Change: 0 tokens (stake returned in full)`);
+      // }
     }
-  });
+    
+    // console.log("\n=== USER PROFILE IMPACT SIMULATION ===");
+    // console.log("• Successfully completed commitments improve user reputation");
+    // console.log("• Each completed session adds to the user's total count");
+    // console.log("• Consecutive daily participation builds streak counters");
+    // console.log("• Higher completion rates lead to better historical performance metrics");
+    
+  } catch (error) {
+    console.error("Error in commitment simulation:", error);
+    throw error;
+  }
+});
 
   //test 9: test updating user profile when completing sessions (simulation)
   it("Simulates completing sessions and updating user profile", async () => {
-    console.log("\nUSER PROFILE SESSION COMPLETION SIMULATION:");
+    // console.log("\nUSER PROFILE SESSION COMPLETION SIMULATION:");
 
     //get current user profile
     try {
       const userProfile = await program.account.userProfile.fetch(userProfilePda);
-      console.log("Initial user profile state:");
-      console.log(`- Total sessions completed: ${userProfile.totalSessionsCompleted}`);
+      // console.log("Initial user profile state:");
+      // console.log(`- Total sessions completed: ${userProfile.totalSessionsCompleted}`);
 
       //simulate completing sessions
       const simulatedCompletedSessions = 3; // Simulate completing 3 sessions
-      console.log(`Simulating completion of ${simulatedCompletedSessions} sessions...`);
+      // console.log(`Simulating completion of ${simulatedCompletedSessions} sessions...`);
 
       //in actual protocol, this would happen via a recordSession instruction
       //show what the user profile would look like after session completion
       const expectedTotalSessions = userProfile.totalSessionsCompleted.add(new BN(simulatedCompletedSessions));
-      console.log("Expected user profile after sessions:");
-      console.log(`- Total sessions completed: ${expectedTotalSessions}`);
+      // console.log("Expected user profile after sessions:");
+      // console.log(`- Total sessions completed: ${expectedTotalSessions}`);
 
       //explain the effect on rewards
-      console.log("\nEffect on rewards:");
-      console.log("- Higher session completion leads to better rewards");
-      console.log("- 90%+ completion rate gives full stake back plus bonus");
-      console.log("- 75-89% completion rate gives full stake back");
-      console.log("- <75% completion rate gives partial refund (75% of stake)");
+      // console.log("\nEffect on rewards:");
+      // console.log("- Higher session completion leads to better rewards");
+      // console.log("- 90%+ completion rate gives full stake back plus bonus");
+      // console.log("- 75-89% completion rate gives full stake back");
+      // console.log("- <75% completion rate gives partial refund (75% of stake)");
     } catch (error) {
       console.error("Error in user profile simulation:", error);
       throw error;

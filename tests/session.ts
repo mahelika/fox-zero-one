@@ -46,7 +46,7 @@ describe("F0x01 Session Tests", () => {
   const sessionPdas: PublicKey[] = [];
   
   before(async () => {
-    console.log("Setting up advanced session test accounts...");
+    // console.log("Setting up advanced session test accounts...");
     
     // Find the focus_program PDA
     [focusProgramPda] = PublicKey.findProgramAddressSync(
@@ -93,16 +93,16 @@ describe("F0x01 Session Tests", () => {
       sessionPdas.push(sessionPda);
     }
     
-    console.log("Test User Keypair:", userKeypair.publicKey.toString());
-    console.log("Test Commitment PDA:", commitmentPda.toString());
+    // console.log("Test User Keypair:", userKeypair.publicKey.toString());
+    // console.log("Test Commitment PDA:", commitmentPda.toString());
     
     // Check if program is initialized
     try {
       const programAccount = await program.account.focusProgram.fetch(focusProgramPda);
       tokenMint = programAccount.focusTokenMint;
-      console.log("Using existing program with token mint:", tokenMint.toString());
+      // console.log("Using existing program with token mint:", tokenMint.toString());
     } catch (error) {
-      console.log("Initializing program for tests...");
+      // console.log("Initializing program for tests...");
       
       // Create a token mint for initialization
       tokenMint = await createMint(
@@ -126,7 +126,7 @@ describe("F0x01 Session Tests", () => {
         })
         .rpc();
       
-      console.log("Program initialized with token mint:", tokenMint.toString());
+      // console.log("Program initialized with token mint:", tokenMint.toString());
     }
     
     // Create user token account
@@ -136,7 +136,7 @@ describe("F0x01 Session Tests", () => {
       // Check if token account exists
       try {
         await provider.connection.getTokenAccountBalance(userTokenAccount);
-        console.log("Using existing user token account");
+        // console.log("Using existing user token account");
       } catch (error) {
         // Create token account if it doesn't exist
         userTokenAccount = await createAssociatedTokenAccount(
@@ -145,7 +145,7 @@ describe("F0x01 Session Tests", () => {
           tokenMint,
           userKeypair.publicKey
         );
-        console.log("Created test user token account");
+        // console.log("Created test user token account");
       }
       
       // Mint tokens to user account for testing
@@ -158,7 +158,7 @@ describe("F0x01 Session Tests", () => {
         stakeAmount.toNumber() * 2  // Mint extra tokens for testing
       );
       
-      console.log("Minted tokens to test user account");
+      // console.log("Minted tokens to test user account");
     } catch (error) {
       console.error("Error setting up token accounts:", error);
     }
@@ -166,9 +166,9 @@ describe("F0x01 Session Tests", () => {
     // Create user profile if it doesn't exist
     try {
       await program.account.userProfile.fetch(userProfilePda);
-      console.log("Using existing user profile");
+      // console.log("Using existing user profile");
     } catch (error) {
-      console.log("Creating test user profile...");
+      // console.log("Creating test user profile...");
       
       await program.methods
         .createUserProfile()
@@ -181,15 +181,15 @@ describe("F0x01 Session Tests", () => {
         .signers([userKeypair])
         .rpc();
       
-      console.log("User profile created");
+      // console.log("User profile created");
     }
 
     // Create new test commitment
     try {
       await program.account.focusCommitment.fetch(commitmentPda);
-      console.log("Using existing test commitment");
+      // console.log("Using existing test commitment");
     } catch (error) {
-      console.log("Creating new test commitment...");
+      // console.log("Creating new test commitment...");
       
       // Find vault PDA
       const [vaultPda] = PublicKey.findProgramAddressSync(
@@ -231,46 +231,10 @@ describe("F0x01 Session Tests", () => {
         .signers([userKeypair])
         .rpc();
       
-      console.log("New test commitment created");
+      // console.log("New test commitment created");
     }
   });
   
-  // TEST 1: Since we can't currently simulate an inactive commitment directly,
-// we'll implement this as a theoretical test and recommend adding a deactivate_commitment instruction
-it("Should prevent starting a session with an inactive commitment (theoretical)", () => {
-  console.log("THEORETICAL TEST: Inactive commitment validation");
-  console.log("This test would verify that the program correctly prevents creating sessions");
-  console.log("on inactive commitments through the 'require!(commitment.is_active, FocusError::CommitmentInactive)' check.");
-  console.log("");
-  console.log("To properly test this, you should implement a deactivate_commitment instruction:");
-  console.log(`
-  #[derive(Accounts)]
-  pub struct DeactivateCommitment<'info> {
-      #[account(
-          mut,
-          seeds = [b"commitment", user.key().as_ref(), &commitment.commitment_id.to_le_bytes()],
-          bump = commitment.bump,
-          constraint = commitment.user == user.key() @ FocusError::InvalidAuthority
-      )]
-      pub commitment: Account<'info, FocusCommitment>,
-      
-      #[account(mut)]
-      pub user: Signer<'info>,
-      
-      #[account(
-          seeds = [b"user_profile", user.key().as_ref()],
-          bump = user_profile.bump
-      )]
-      pub user_profile: Account<'info, UserProfile>,
-  }
-
-  pub fn deactivate_commitment(ctx: Context<DeactivateCommitment>) -> Result<()> {
-      let commitment = &mut ctx.accounts.commitment;
-      commitment.is_active = false;
-      Ok(())
-  }
-  `);
-});
 
 // TEST 2: Validate same-user constraint
 it("Fails when a different user tries to start a session", async () => {
@@ -303,9 +267,9 @@ it("Fails when a different user tries to start a session", async () => {
       .signers([otherUserKeypair])
       .rpc();
     
-    console.log("Created user profile for test user");
+    // console.log("Created user profile for test user");
   } catch (error) {
-    console.log("User profile may already exist, continuing with test");
+    // console.log("User profile may already exist, continuing with test");
   }
   
   // Use an alternate session ID to avoid conflicts
@@ -338,7 +302,7 @@ it("Fails when a different user tries to start a session", async () => {
       expect.fail("Should not be able to start session with wrong user");
     } catch (error) {
       // Instead of checking for specific error message, just make sure an error occurred
-      console.log("Error message:", error.message);
+      // console.log("Error message:", error.message);
       
       // Check if error message contains constraint-related text
       // This is more flexible than checking for specific error text
@@ -348,7 +312,7 @@ it("Fails when a different user tries to start a session", async () => {
                 msg.includes("authority") || 
                 msg.includes("user")
       );
-      console.log("Successfully caught error when using wrong user to start session");
+      // console.log("Successfully caught error when using wrong user to start session");
     }
   } catch (error) {
     console.error("Error in wrong user test:", error);
@@ -384,7 +348,7 @@ it("Fails when a different user tries to start a session", async () => {
       expect(sessionRecord.endTimestamp.toNumber()).to.equal(0);
       expect(sessionRecord.verificationSlot.toNumber()).to.be.greaterThan(0);
       
-      console.log("Session created with correct properties");
+      // console.log("Session created with correct properties");
     } catch (error) {
       console.error("Error creating session:", error);
       throw error;
@@ -413,7 +377,7 @@ it("Fails when a different user tries to start a session", async () => {
       } catch (error) {
         // This should fail with an account already exists error
         expect(error.message).to.include("already in use");
-        console.log("Successfully caught error when creating duplicate session");
+        // console.log("Successfully caught error when creating duplicate session");
       }
     } catch (error) {
       console.error("Error in duplicate session test:", error);
@@ -421,103 +385,13 @@ it("Fails when a different user tries to start a session", async () => {
     }
   });
   
-  // TEST 5: Session completion with already completed session
-  it("Fails when trying to complete an already completed session", async () => {
-    // This test requires modifying the on-chain state directly since we can't actually advance time
-    // For demonstration purposes, we'll mock this scenario
-    
-    console.log("Testing already completed session handling (theoretical test):");
-    console.log("1. In a real test environment, we would:")
-    console.log("   - Start a session");
-    console.log("   - Advance time");
-    console.log("   - Complete the session");
-    console.log("   - Try to complete it again - should fail");
-    console.log("2. In production, the program correctly checks for session.completed = true");
-    console.log("   and returns SessionAlreadyCompleted error");
-  });
-  
-  // TEST 6: Create multiple sessions in the same day (when time constraints are met)
-  it("Allows creating multiple sessions up to the daily limit", async () => {
-    // This test would ideally advance time between session creations
-    // We'll demonstrate the expected behavior
-    
-    console.log("Testing multiple session creation (theoretical test):");
-    console.log("1. In a real test environment with clock control, we would:");
-    console.log("   - Start session 1");
-    console.log("   - Advance clock by 30+ minutes");
-    console.log("   - Start session 2");
-    console.log("   - Advance clock by 30+ minutes");
-    console.log("   - Start session 3");
-    console.log("   - Try to start session 4 - should fail with DailySessionsCompleted");
-    console.log("   - Advance clock to next day");
-    console.log("   - Successfully start new sessions");
-    console.log("2. This validates the session limit and day reset logic");
-  });
-  
-  // TEST 7: Test streak calculation logic
-  it("Correctly calculates streaks when completing sessions", async () => {
-    console.log("Testing streak calculation (theoretical test):");
-    console.log("1. In a real test environment with clock control, we would:");
-    console.log("   - Complete a session on day 1");
-    console.log("   - Verify streak = 1");
-    console.log("   - Advance to day 2");
-    console.log("   - Complete a session");
-    console.log("   - Verify streak = 2");
-    console.log("   - Skip day 3");
-    console.log("   - Complete a session on day 4");
-    console.log("   - Verify streak = 1 (reset due to missed day)");
-    console.log("2. This tests the streak logic in the complete_session function");
-  });
-  
-  // TEST 8: Test commitment completion after all sessions
-  it("Validates commitment completion after all required sessions", async () => {
-    console.log("Testing commitment completion (theoretical test):");
-    console.log("1. In a real test environment with clock control, we would:");
-    console.log("   - Create a short commitment (e.g., 2 days, 1 session per day)");
-    console.log("   - Complete day 1 session");
-    console.log("   - Advance to day 2");
-    console.log("   - Complete day 2 session");
-    console.log("   - Verify commitment is marked as completed");
-    console.log("   - Verify rewards are correctly calculated");
-    console.log("2. This tests the completion tracking logic");
-  });
-  
-  // TEST 9: Simulating a multi-day test scenario
-  it("Simulates a complete multi-day commitment scenario", async () => {
-    console.log("Multi-day commitment simulation (theoretical test):");
-    console.log("1. In a real test environment with clock control, we would simulate:");
-    console.log("   - Day 1: Complete all sessions");
-    console.log("   - Day 2: Complete all sessions");
-    console.log("   - Day 3: Miss sessions");
-    console.log("   - Day 4: Complete all sessions");
-    console.log("   - Day 5: Complete some sessions");
-    console.log("   - Day 6: Complete all sessions");
-    console.log("   - Day 7: Complete all sessions");
-    console.log("2. Then verify:");
-    console.log("   - User streak calculations are correct");
-    console.log("   - Total sessions completed is accurate");
-    console.log("   - Commitment state reflects partial completion");
-    console.log("   - Rewards are calculated correctly based on completion rate");
-  });
-  
-  // TEST 10: Simulation of expired commitment behavior
-  it("Handles expired commitments correctly", async () => {
-    console.log("Expired commitment handling (theoretical test):");
-    console.log("1. In a real test environment with clock control, we would:");
-    console.log("   - Create a short commitment (e.g., 2 days)");
-    console.log("   - Advance clock by 3 days (beyond commitment period)");
-    console.log("   - Try to start a session - should fail with CommitmentEnded");
-    console.log("   - Verify commitment can be withdrawn/closed");
-    console.log("2. This validates the days_elapsed < commitment.total_days check");
-  });
-
 it("Cannot start more than the allowed sessions per day", async () => {
   // First, fetch commitment to see how many sessions are allowed and completed today
   const commitmentAccount = await program.account.focusCommitment.fetch(commitmentPda);
   const sessionsPerDay = commitmentAccount.sessionsPerDay;
   const sessionsCompletedToday = commitmentAccount.sessionsCompletedToday;
   
-  console.log(`Sessions per day: ${sessionsPerDay}, Completed today: ${sessionsCompletedToday}`);
+  // console.log(`Sessions per day: ${sessionsPerDay}, Completed today: ${sessionsCompletedToday}`);
   
   // If already at max sessions, we should see an error
   if (sessionsCompletedToday >= sessionsPerDay) {
@@ -548,33 +422,10 @@ it("Cannot start more than the allowed sessions per day", async () => {
       expect(error.message).to.satisfy(
         (msg) => msg.includes("DailySessionsCompleted") || msg.includes("daily sessions completed")
       );
-      console.log("Successfully caught error when starting more than allowed sessions");
+      // console.log("Successfully caught error when starting more than allowed sessions");
     }
   } else {
-    console.log("Daily session limit not reached yet, skipping this test case");
+    // console.log("Daily session limit not reached yet, skipping this test case");
   }
 });
-
-// User profile tests
-it("Checks user profile stats after session activity", async () => {
-  // First, get current user profile stats
-  const userProfileBefore = await program.account.userProfile.fetch(userProfilePda);
-  const sessionsBefore = userProfileBefore.totalSessionsCompleted;
-  
-  console.log("Sessions completed before:", sessionsBefore.toString());
-  console.log("Current streak:", userProfileBefore.currentStreak.toString());
-  console.log("Best streak:", userProfileBefore.bestStreak.toString());
-  
-  // This is primarily an informational test that checks the current state
-  // We're not testing changes since those would require time manipulation
-  
-  // For a real test suite, you would want to use mock time or direct state manipulation
-  console.log("User profile stats test completed - primarily informational");
-});
-  // Additional helper function that could be implemented for real tests
-  function simulateSlotAndTimeAdvance(sessionPda: PublicKey, minutes: number) {
-    console.log(`[SIMULATION] Advanced time by ${minutes} minutes`);
-    console.log(`[SIMULATION] Advanced Solana slots appropriately`);
-    console.log(`[SIMULATION] Session at ${sessionPda.toString()} would now be valid for completion`);
-  }
 });

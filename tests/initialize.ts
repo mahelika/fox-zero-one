@@ -36,8 +36,8 @@ describe("F0x01 Initialize Tests", () => {
       9 
     );
     
-    console.log("Focus Program PDA:", focusProgramPda.toString());
-    console.log("Focus Token Mint:", focusTokenMint.toString());
+    // console.log("Focus Program PDA:", focusProgramPda.toString());
+    // console.log("Focus Token Mint:", focusTokenMint.toString());
   });
 
   it("Initializes the program with correct state", async () => {
@@ -55,7 +55,7 @@ describe("F0x01 Initialize Tests", () => {
         })
         .rpc();
       
-      console.log("Transaction signature:", tx);
+      // console.log("Transaction signature:", tx);
       //fetch the program state to verify it initialized correctly
       const programState = await program.account.focusProgram.fetch(focusProgramPda);
       
