@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
+import { PublicKey, SystemProgram, Keypair, Transaction } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, createMint } from "@solana/spl-token";
 import { expect } from "chai";
 import { F0x01 } from "../target/types/f0x01";
@@ -18,6 +18,21 @@ describe("F0x01 Initialize Tests", () => {
   
   //test parameters
   const rewardRate = new anchor.BN(100); // set reward rate
+  
+  // Helper function to fund a wallet using your main wallet instead of airdrops
+  async function fundWalletFromMain(destination: PublicKey, amountInLamports: number) {
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: wallet.publicKey,
+        toPubkey: destination,
+        lamports: amountInLamports,
+      })
+    );
+    
+    const signature = await provider.sendAndConfirm(transaction);
+    // console.log(`Funded ${destination.toString()} with ${amountInLamports / anchor.web3.LAMPORTS_PER_SOL} SOL`);
+    return signature;
+  }
   
   before(async () => {
     //find the focus_program PDA
@@ -102,25 +117,24 @@ describe("F0x01 Initialize Tests", () => {
   });
 
   it("Allows different reward rates to be set", async () => {
-    // createnew program instance with a different PDA for testing different parameters
+    // Create new program instance with a different PDA for testing different parameters
     const differentRewardRate = new anchor.BN(200);
     const differentAuthority = Keypair.generate();
     
-    //fund the new authority to pay for the transaction
-    const fundTx = await provider.connection.requestAirdrop(
+    // Fund the new authority using your main wallet instead of an airdrop
+    await fundWalletFromMain(
       differentAuthority.publicKey,
       1000000000 // 1 SOL
     );
-    await provider.connection.confirmTransaction(fundTx);
     
-    //find a different PDA for this test
+    // Find a different PDA for this test
     const [differentProgramPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("focus_program"), differentAuthority.publicKey.toBuffer()],
       program.programId
     );
     
     try {
-      //initialize with different parameters
+      // Initialize with different parameters
       const tx = await program.methods
         .initializeProgram(differentRewardRate)
         .accountsStrict({
@@ -136,23 +150,23 @@ describe("F0x01 Initialize Tests", () => {
       
       console.log("Different params transaction signature:", tx);
       
-      //this should fail because your program only allows one focus_program PDA
+      // This should fail because your program only allows one focus_program PDA
       expect.fail("Should have thrown an error with different PDA derivation");
     } catch (error) {
-      //this is expected, as your program likely only allows one focus_program PDA
-      //the test passes if we get here
+      // This is expected, as your program likely only allows one focus_program PDA
+      // The test passes if we get here
     }
   });
 
   it("Verifies program account ownership", async () => {
     const programState = await program.account.focusProgram.fetch(focusProgramPda);
     
-    //verify the program account is owned by the program
+    // Verify the program account is owned by the program
     const accountInfo = await provider.connection.getAccountInfo(focusProgramPda);
     expect(accountInfo.owner.toString()).to.equal(program.programId.toString(), 
       "Program account should be owned by the program");
     
-    // verify ifaccount data size matches expected space
+    // Verify account data size matches expected space
     const expectedSpace = 8 + 32 + 1 + 8 + 8 + 8 + 32; 
     expect(accountInfo.data.length).to.equal(expectedSpace, 
       "Account data size doesn't match expected space");
