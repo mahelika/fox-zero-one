@@ -35,6 +35,7 @@
   },
   "homepage": "https://github.com/mahelika/fox-zero-one#readme",
   "description": "",
+  "type": "module",
   "dependencies": {
     "@solana/spl-token": "^0.4.13"
   }

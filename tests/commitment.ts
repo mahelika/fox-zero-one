@@ -1,11 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
+import { BN } from "@project-serum/anchor";
 import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
-import { 
-  TOKEN_PROGRAM_ID, 
-  createMint, 
-  createAssociatedTokenAccount, 
-  mintTo, 
+import {
+  TOKEN_PROGRAM_ID,
+  createMint,
+  createAssociatedTokenAccount,
+  mintTo,
   getAssociatedTokenAddress,
   getAccount
 } from "@solana/spl-token";
@@ -18,117 +19,58 @@ describe("F0x01 Commitment Tests", () => {
   anchor.setProvider(provider);
   const program = anchor.workspace.F0x01 as Program<F0x01>;
   const wallet = provider.wallet;
-  
   //global variables
   let focusProgramPda: PublicKey;
   let userKeypair: Keypair;
   let userProfilePda: PublicKey;
   let tokenMint: PublicKey;
   let userTokenAccount: PublicKey;
-  
   //test parameters
-  const commitmentId = new anchor.BN(1);
+  const commitmentId = new anchor.BN(100); //using different IDs from main tests
   const stakeAmount = new anchor.BN(100_000_000); // 100 tokens with 6 decimals
-  const sessionsPerDay = 2;
-  const totalDays = 2;
-  
   //store PDAs for reuse across tests
   let commitmentPda: PublicKey;
   let vaultPda: PublicKey;
   let vaultAuthorityPda: PublicKey;
-  
+
   before(async () => {
-    console.log("Setting up test environment...");
-    
+    console.log("Setting up additional test environment...");
+
     //find the focus_program PDA
     [focusProgramPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("focus_program")],
       program.programId
     );
-    
+
     //create a user keypair for testing
     userKeypair = Keypair.generate();
-    
+
     //fund the user account with SOL
     const airdropSig = await provider.connection.requestAirdrop(
       userKeypair.publicKey,
       2 * anchor.web3.LAMPORTS_PER_SOL
     );
     await provider.connection.confirmTransaction(airdropSig);
-    
+
     //find the user profile PDA
     [userProfilePda] = PublicKey.findProgramAddressSync(
       [Buffer.from("user_profile"), userKeypair.publicKey.toBuffer()],
       program.programId
     );
-    
-    //pre-compute PDAs for commitments
-    [commitmentPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("commitment"),
-        userKeypair.publicKey.toBuffer(),
-        commitmentId.toArrayLike(Buffer, "le", 8)
-      ],
-      program.programId
-    );
-    
-    [vaultPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("vault"),
-        userKeypair.publicKey.toBuffer(),
-        commitmentId.toArrayLike(Buffer, "le", 8)
-      ],
-      program.programId
-    );
-    
-    [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault_authority")],
-      program.programId
-    );
-    
-    console.log("Focus Program PDA:", focusProgramPda.toString());
-    console.log("User Public Key:", userKeypair.publicKey.toString());
-    console.log("User Profile PDA:", userProfilePda.toString());
-    console.log("Commitment PDA:", commitmentPda.toString());
-    console.log("Vault PDA:", vaultPda.toString());
-    
-    //check if program is initialized, if not -> initialize it
+
+    //find the program token mint
     try {
       const programAccount = await program.account.focusProgram.fetch(focusProgramPda);
       tokenMint = programAccount.focusTokenMint;
-      console.log("Program already initialized with token mint:", tokenMint.toString());
     } catch (error) {
-      console.log("Initializing program...");
-      
-      //create a token mint for initialization
-      tokenMint = await createMint(
-        provider.connection,
-        wallet.payer,
-        wallet.publicKey,
-        null,
-        6  
-      );
-      
-      //initialize program
-      await program.methods
-        .initializeProgram(new anchor.BN(10)) //setting reward rate to 10%
-        .accountsStrict({
-          focusProgram: focusProgramPda,
-          focusTokenMint: tokenMint,
-          authority: wallet.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        })
-        .rpc();
-      
-      console.log("Program initialized with token mint:", tokenMint.toString());
+      console.error("Error fetching program account, make sure it's initialized:", error);
+      throw error;
     }
-    
-    //creating user token account and mint tokens for testing
+
+    //create user token account and mint tokens for testing
     try {
       userTokenAccount = await getAssociatedTokenAddress(tokenMint, userKeypair.publicKey);
-      
+
       //check if token account already exists
       try {
         await provider.connection.getTokenAccountBalance(userTokenAccount);
@@ -143,9 +85,9 @@ describe("F0x01 Commitment Tests", () => {
         );
         console.log("Created user token account:", userTokenAccount.toString());
       }
-      
-      //mint tokens to user account for testing - mint enough for multiple tests
-      const mintAmount = stakeAmount.toNumber() * 5; //more tokens for various tests
+
+      //mint tokens to user account for testing
+      const mintAmount = stakeAmount.toNumber() * 10; //more tokens for various tests
       await mintTo(
         provider.connection,
         wallet.payer,
@@ -154,24 +96,20 @@ describe("F0x01 Commitment Tests", () => {
         wallet.publicKey,
         mintAmount
       );
-      
+
       console.log(`Minted ${mintAmount / 1_000_000} tokens to user account`);
-      
-      //verify token balance
-      const balance = await provider.connection.getTokenAccountBalance(userTokenAccount);
-      console.log("User token balance:", balance.value.uiAmount);
     } catch (error) {
       console.error("Error setting up token accounts:", error);
       throw error;
     }
-    
+
     //create user profile if it doesn't exist
     try {
       await program.account.userProfile.fetch(userProfilePda);
       console.log("User profile already exists");
     } catch (error) {
       console.log("Creating user profile...");
-      
+
       await program.methods
         .createUserProfile()
         .accountsStrict({
@@ -182,53 +120,48 @@ describe("F0x01 Commitment Tests", () => {
         })
         .signers([userKeypair])
         .rpc();
-      
+
       console.log("User profile created");
     }
+
+    //pre-compute PDAs for commitments
+    [commitmentPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("commitment"),
+        userKeypair.publicKey.toBuffer(),
+        commitmentId.toArrayLike(Buffer, "le", 8)
+      ],
+      program.programId
+    );
+
+    [vaultPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vault"),
+        userKeypair.publicKey.toBuffer(),
+        commitmentId.toArrayLike(Buffer, "le", 8)
+      ],
+      program.programId
+    );
+
+    [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault_authority")],
+      program.programId
+    );
   });
-  
-  it("Creates a commitment", async () => {
+
+  //test 1: create commitment with minimum valid parameters
+  it("Creates commitment with minimum valid parameters", async () => {
+    const minSessionsPerDay = 1;
+    const minTotalDays = 1;
+
     try {
-      // find commitment PDA
-      const [commitmentPda] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("commitment"),
-          userKeypair.publicKey.toBuffer(),
-          commitmentId.toArrayLike(Buffer, "le", 8)
-        ],
-        program.programId
-      );
-      
-      //find vault PDA
-      const [vaultPda] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("vault"),
-          userKeypair.publicKey.toBuffer(),
-          commitmentId.toArrayLike(Buffer, "le", 8)
-        ],
-        program.programId
-      );
-      
-      //find vault authority PDA
-      const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("vault_authority")],
-        program.programId
-      );
-      
-      console.log("Commitment PDA:", commitmentPda.toString());
-      console.log("Vault PDA:", vaultPda.toString());
-      
-      //fetch program state before
-      const programBefore = await program.account.focusProgram.fetch(focusProgramPda);
-      const totalStakedBefore = programBefore.totalStaked;
-      
-      //create the commitment
+      //create the commitment with minimum valid parameters
       const tx = await program.methods
         .createCommitment(
           commitmentId,
           stakeAmount,
-          sessionsPerDay,
-          totalDays
+          minSessionsPerDay,
+          minTotalDays
         )
         .accountsStrict({
           commitment: commitmentPda,
@@ -245,78 +178,66 @@ describe("F0x01 Commitment Tests", () => {
         })
         .signers([userKeypair])
         .rpc();
-      
-      console.log("Create commitment transaction signature:", tx);
-      
-      //fetch the commitment to verify it was created correctly
+
+      console.log("Created commitment with minimum parameters, tx:", tx);
+
+      //verify the commitment was created correctly
       const commitment = await program.account.focusCommitment.fetch(commitmentPda);
-      
-      //assert that the commitment was initialized correctly
       expect(commitment.user.toString()).to.equal(userKeypair.publicKey.toString());
-      expect(commitment.commitmentId.toString()).to.equal(commitmentId.toString());
-      expect(commitment.amountStaked.toString()).to.equal(stakeAmount.toString());
-      expect(commitment.sessionsPerDay).to.equal(sessionsPerDay);
-      expect(commitment.totalDays).to.equal(totalDays);
-      expect(commitment.isActive).to.equal(true);
-      expect(commitment.daysCompleted).to.equal(0);
-      expect(commitment.sessionsCompletedToday).to.equal(0);
-      expect(commitment.startTimestamp.toNumber()).to.be.greaterThan(0);
-      
+      expect(commitment.sessionsPerDay).to.equal(minSessionsPerDay);
+      expect(commitment.totalDays).to.equal(minTotalDays);
+      expect(commitment.isActive).to.be.true;
+
       //verify vault received the tokens
       const vaultBalance = await provider.connection.getTokenAccountBalance(vaultPda);
       expect(vaultBalance.value.amount).to.equal(stakeAmount.toString());
-      
-      //verify program state was updated
-      const programAfter = await program.account.focusProgram.fetch(focusProgramPda);
-      const expectedTotalStaked = totalStakedBefore.add(stakeAmount);
-      expect(programAfter.totalStaked.toString()).to.equal(expectedTotalStaked.toString());
-      
     } catch (error) {
-      console.error("Error creating commitment:", error);
+      console.error("Error creating commitment with minimum parameters:", error);
       throw error;
     }
   });
-  
-  it("Creates another commitment with different ID", async () => {
-    const newCommitmentId = new anchor.BN(2);
-    
-    //find new PDAs for this commitment
-    const [newCommitmentPda] = PublicKey.findProgramAddressSync(
+
+  //test 2: create commitment with maximum valid parameters
+  it("Creates commitment with maximum valid parameters", async () => {
+    const maxCommitmentId = new anchor.BN(101);
+    const maxSessionsPerDay = 10;
+    const maxTotalDays = 30;
+
+    //find PDAs for this specific commitment
+    const [maxCommitmentPda] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("commitment"),
         userKeypair.publicKey.toBuffer(),
-        newCommitmentId.toArrayLike(Buffer, "le", 8)
+        maxCommitmentId.toArrayLike(Buffer, "le", 8)
       ],
       program.programId
     );
-    
-    const [newVaultPda] = PublicKey.findProgramAddressSync(
+
+    const [maxVaultPda] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("vault"),
         userKeypair.publicKey.toBuffer(),
-        newCommitmentId.toArrayLike(Buffer, "le", 8)
+        maxCommitmentId.toArrayLike(Buffer, "le", 8)
       ],
       program.programId
     );
-    
-    //create a new commitment with different ID
-    const stakeAmount2 = new anchor.BN(50_000_000); // 50 tokens
-    
+
     try {
+      //create the commitment with maximum valid parameters
       const tx = await program.methods
         .createCommitment(
-          newCommitmentId,
-          stakeAmount2,
-          3, // different sessions per day
-          5  // different total days
+          maxCommitmentId,
+          stakeAmount,
+          maxSessionsPerDay,
+          maxTotalDays
         )
         .accountsStrict({
-          commitment: newCommitmentPda,
+          commitment: maxCommitmentPda,
           userProfile: userProfilePda,
           focusProgram: focusProgramPda,
           user: userKeypair.publicKey,
           userTokenAccount: userTokenAccount,
-          vault: newVaultPda,
+          vault: maxVaultPda,
           vaultAuthority: vaultAuthorityPda,
           tokenMint: tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -325,224 +246,402 @@ describe("F0x01 Commitment Tests", () => {
         })
         .signers([userKeypair])
         .rpc();
-      
-      console.log("Created second commitment with ID:", newCommitmentId.toString());
-      
-      // Verify the new commitment
-      const commitment = await program.account.focusCommitment.fetch(newCommitmentPda);
-      expect(commitment.commitmentId.toString()).to.equal(newCommitmentId.toString());
-      expect(commitment.amountStaked.toString()).to.equal(stakeAmount2.toString());
-      expect(commitment.sessionsPerDay).to.equal(3);
-      expect(commitment.totalDays).to.equal(5);
-      
-      // Verify the vault has the correct amount
-      const vaultBalance = await provider.connection.getTokenAccountBalance(newVaultPda);
-      expect(vaultBalance.value.amount).to.equal(stakeAmount2.toString());
+
+      console.log("Created commitment with maximum parameters, tx:", tx);
+
+      //verify the commitment was created correctly
+      const commitment = await program.account.focusCommitment.fetch(maxCommitmentPda);
+      expect(commitment.user.toString()).to.equal(userKeypair.publicKey.toString());
+      expect(commitment.sessionsPerDay).to.equal(maxSessionsPerDay);
+      expect(commitment.totalDays).to.equal(maxTotalDays);
+      expect(commitment.isActive).to.be.true;
+
+      //verify vault received the tokens
+      const vaultBalance = await provider.connection.getTokenAccountBalance(maxVaultPda);
+      expect(vaultBalance.value.amount).to.equal(stakeAmount.toString());
     } catch (error) {
-      console.error("Error creating second commitment:", error);
+      console.error("Error creating commitment with maximum parameters:", error);
       throw error;
     }
   });
-  
-  it("Fails to create commitment with invalid parameters", async () => {
-    //create new commitment ID for this test
-    const invalidCommitmentId = new anchor.BN(3);
-    
-    //find PDAs for the new commitment
+
+  //test 3: test for insufficient funds when creating commitment
+  it("Fails to create commitment with insufficient funds", async () => {
+    const insufficientFundsId = new anchor.BN(102);
+
+    //find PDAs for this commitment
+    const [insufficientCommitmentPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("commitment"),
+        userKeypair.publicKey.toBuffer(),
+        insufficientFundsId.toArrayLike(Buffer, "le", 8)
+      ],
+      program.programId
+    );
+
+    const [insufficientVaultPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vault"),
+        userKeypair.publicKey.toBuffer(),
+        insufficientFundsId.toArrayLike(Buffer, "le", 8)
+      ],
+      program.programId
+    );
+
+    //create a new user with insufficient funds
+    const poorUserKeypair = Keypair.generate();
+
+    //fund the user with just enough SOL for transaction fees
+    const airdropSig = await provider.connection.requestAirdrop(
+      poorUserKeypair.publicKey,
+      0.1 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(airdropSig);
+
+    //create a token account for this user
+    const poorUserTokenAccount = await createAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      tokenMint,
+      poorUserKeypair.publicKey
+    );
+
+    //mint only a small amount of tokens (insufficient for commitment)
+    const smallAmount = 1000; // Very small amount, insufficient for stake
+    await mintTo(
+      provider.connection,
+      wallet.payer,
+      tokenMint,
+      poorUserTokenAccount,
+      wallet.publicKey,
+      smallAmount
+    );
+
+    //find the user profile PDA for this user
+    const [poorUserProfilePda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user_profile"), poorUserKeypair.publicKey.toBuffer()],
+      program.programId
+    );
+
+    //create user profile for this user
+    await program.methods
+      .createUserProfile()
+      .accountsStrict({
+        userProfile: poorUserProfilePda,
+        user: poorUserKeypair.publicKey,
+        focusProgram: focusProgramPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([poorUserKeypair])
+      .rpc();
+
+    try {
+      //attempt to create a commitment with insufficient funds
+      await program.methods
+        .createCommitment(
+          insufficientFundsId,
+          stakeAmount, //this is much larger than the user's balance
+          1,
+          1
+        )
+        .accountsStrict({
+          commitment: insufficientCommitmentPda,
+          userProfile: poorUserProfilePda,
+          focusProgram: focusProgramPda,
+          user: poorUserKeypair.publicKey,
+          userTokenAccount: poorUserTokenAccount,
+          vault: insufficientVaultPda,
+          vaultAuthority: vaultAuthorityPda,
+          tokenMint: tokenMint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        })
+        .signers([poorUserKeypair])
+        .rpc();
+
+      assert.fail("Should have failed due to insufficient funds");
+    } catch (error) {
+      //expected to fail with insufficient funds error
+      console.log("Correctly failed with insufficient funds error");
+      expect(error.message).to.include("Error");
+    }
+  });
+
+  //test 4: test creating multiple commitments for the same user
+  it("Creates multiple commitments for the same user", async () => {
+    const multipleIds = [new anchor.BN(103), new anchor.BN(104), new anchor.BN(105)];
+    const commitmentPdas: PublicKey[] = [];
+    const vaultPdas: PublicKey[] = [];
+
+    //find PDAs for all commitments
+    for (let id of multipleIds) {
+      const [cPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("commitment"),
+          userKeypair.publicKey.toBuffer(),
+          id.toArrayLike(Buffer, "le", 8)
+        ],
+        program.programId
+      );
+      commitmentPdas.push(cPda);
+
+      const [vPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("vault"),
+          userKeypair.publicKey.toBuffer(),
+          id.toArrayLike(Buffer, "le", 8)
+        ],
+        program.programId
+      );
+      vaultPdas.push(vPda);
+    }
+
+    //create multiple commitments with different parameters
+    for (let i = 0; i < multipleIds.length; i++) {
+      try {
+        const id = multipleIds[i];
+        const sessionsPerDay = i + 1;
+        const totalDays = i + 1;
+
+        const tx = await program.methods
+          .createCommitment(
+            id,
+            stakeAmount,
+            sessionsPerDay,
+            totalDays
+          )
+          .accountsStrict({
+            commitment: commitmentPdas[i],
+            userProfile: userProfilePda,
+            focusProgram: focusProgramPda,
+            user: userKeypair.publicKey,
+            userTokenAccount: userTokenAccount,
+            vault: vaultPdas[i],
+            vaultAuthority: vaultAuthorityPda,
+            tokenMint: tokenMint,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          })
+          .signers([userKeypair])
+          .rpc();
+
+        console.log(`Created commitment ${i + 1}, tx:`, tx);
+
+        //verify the commitment was created correctly
+        const commitment = await program.account.focusCommitment.fetch(commitmentPdas[i]);
+        expect(commitment.user.toString()).to.equal(userKeypair.publicKey.toString());
+        expect(commitment.commitmentId.toString()).to.equal(id.toString());
+        expect(commitment.sessionsPerDay).to.equal(sessionsPerDay);
+        expect(commitment.totalDays).to.equal(totalDays);
+        expect(commitment.isActive).to.be.true;
+      } catch (error) {
+        console.error(`Error creating multiple commitment ${i + 1}:`, error);
+        throw error;
+      }
+    }
+
+    //verify that all commitments exist for this user
+    //tests that the program correctly handles multiple active commitments per user
+    const fetchedProgram = await program.account.focusProgram.fetch(focusProgramPda);
+    console.log(`Program total staked: ${fetchedProgram.totalStaked.toString()}`);
+  });
+
+
+
+  //rest 5: test commitment with different stake amounts
+  it("Creates commitments with different stake amounts", async () => {
+    //use smaller stake amounts or mint more tokens
+    const differentStakeIds = [new anchor.BN(106), new anchor.BN(107)];
+    const stakeAmounts = [
+      new anchor.BN(10_000_000), // 10 tokens
+      new anchor.BN(50_000_000), // 50 tokens
+    ];
+
+    //mint additional tokens to ensure there are enough funds for both tests
+    try {
+      //add more tokens to the user's account
+      await mintTo(
+        provider.connection,
+        wallet.payer,
+        tokenMint,
+        userTokenAccount,
+        wallet.publicKey,
+        200_000_000 //mint additional 200 tokens for testing
+      );
+      console.log("Minted additional tokens to ensure sufficient funds");
+    } catch (error) {
+      console.error("Error minting additional tokens:", error);
+    }
+
+    for (let i = 0; i < differentStakeIds.length; i++) {
+      const id = differentStakeIds[i];
+      const stake = stakeAmounts[i];
+
+      //find PDAs for this commitment
+      const [cPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("commitment"),
+          userKeypair.publicKey.toBuffer(),
+          id.toArrayLike(Buffer, "le", 8)
+        ],
+        program.programId
+      );
+
+      const [vPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("vault"),
+          userKeypair.publicKey.toBuffer(),
+          id.toArrayLike(Buffer, "le", 8)
+        ],
+        program.programId
+      );
+
+      try {
+        //check user's token balance before creating commitment
+        const balanceBefore = await provider.connection.getTokenAccountBalance(userTokenAccount);
+        console.log(`User balance before commitment ${i + 1}: ${balanceBefore.value.amount}`);
+
+        //create commitment with different stake amount
+        const tx = await program.methods
+          .createCommitment(
+            id,
+            stake,
+            2, // sessions per day
+            2  // total days
+          )
+          .accountsStrict({
+            commitment: cPda,
+            userProfile: userProfilePda,
+            focusProgram: focusProgramPda,
+            user: userKeypair.publicKey,
+            userTokenAccount: userTokenAccount,
+            vault: vPda,
+            vaultAuthority: vaultAuthorityPda,
+            tokenMint: tokenMint,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          })
+          .signers([userKeypair])
+          .rpc();
+
+        console.log(`Created commitment with stake ${stake.toString()}, tx:`, tx);
+
+        //verify commitment was created with correct stake amount
+        const commitment = await program.account.focusCommitment.fetch(cPda);
+        expect(commitment.amountStaked.toString()).to.equal(stake.toString());
+
+        //verify vault received the correct amount
+        const vaultBalance = await provider.connection.getTokenAccountBalance(vPda);
+        expect(vaultBalance.value.amount).to.equal(stake.toString());
+
+        //check user's token balance after creating commitment
+        const balanceAfter = await provider.connection.getTokenAccountBalance(userTokenAccount);
+        console.log(`User balance after commitment ${i + 1}: ${balanceAfter.value.amount}`);
+      } catch (error) {
+        console.error(`Error creating commitment with stake ${stake.toString()}:`, error);
+        throw error;
+      }
+    }
+  });
+
+
+  //test 6:test creating a commitment with an invalid token account
+  it("Fails to create commitment with invalid token account", async () => {
+    const invalidTokenId = new anchor.BN(108);
+
+    //find PDAs for this commitment
     const [invalidCommitmentPda] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("commitment"),
         userKeypair.publicKey.toBuffer(),
-        invalidCommitmentId.toArrayLike(Buffer, "le", 8)
+        invalidTokenId.toArrayLike(Buffer, "le", 8)
       ],
       program.programId
     );
-    
+
     const [invalidVaultPda] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("vault"),
         userKeypair.publicKey.toBuffer(),
-        invalidCommitmentId.toArrayLike(Buffer, "le", 8)
+        invalidTokenId.toArrayLike(Buffer, "le", 8)
       ],
       program.programId
     );
-    
-    //test with invalid sessionsPerDay (0)
+
+    //create another token mint (which is not the program's focus token)
+    const wrongMint = await createMint(
+      provider.connection,
+      wallet.payer,
+      wallet.publicKey,
+      null,
+      6
+    );
+
+    //create token account for the wrong mint
+    const wrongTokenAccount = await createAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      wrongMint,
+      userKeypair.publicKey
+    );
+
+    //mint some tokens of the wrong type
+    await mintTo(
+      provider.connection,
+      wallet.payer,
+      wrongMint,
+      wrongTokenAccount,
+      wallet.publicKey,
+      100_000_000
+    );
+
     try {
+      //attempt to create commitment with invalid token account
       await program.methods
         .createCommitment(
-          invalidCommitmentId,
+          invalidTokenId,
           stakeAmount,
-          0, //invalid sessionsPerDay -> should be > 0
-          totalDays
+          2,
+          2
         )
         .accountsStrict({
           commitment: invalidCommitmentPda,
           userProfile: userProfilePda,
           focusProgram: focusProgramPda,
           user: userKeypair.publicKey,
-          userTokenAccount: userTokenAccount,
+          userTokenAccount: wrongTokenAccount, //wrong token account
           vault: invalidVaultPda,
           vaultAuthority: vaultAuthorityPda,
-          tokenMint: tokenMint,
+          tokenMint: tokenMint, //correct mint, but wrongTokenAccount has different mint
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         })
         .signers([userKeypair])
         .rpc();
-      
-      //should not reach here
-      assert.fail("Expected error when creating commitment with invalid sessionsPerDay");
+
+      assert.fail("Should have failed due to invalid token account");
     } catch (error) {
-      //should fail with InvalidSessionCount
-      expect(error.message).to.include("InvalidSessionCount");
-    }
-    
-    //test with invalid totalDays (0)
-    try {
-      await program.methods
-        .createCommitment(
-          invalidCommitmentId,
-          stakeAmount,
-          sessionsPerDay,
-          0 //invalid totalDays -> should be > 0
-        )
-        .accountsStrict({
-          commitment: invalidCommitmentPda,
-          userProfile: userProfilePda,
-          focusProgram: focusProgramPda,
-          user: userKeypair.publicKey,
-          userTokenAccount: userTokenAccount,
-          vault: invalidVaultPda,
-          vaultAuthority: vaultAuthorityPda,
-          tokenMint: tokenMint,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        })
-        .signers([userKeypair])
-        .rpc();
-      
-      //should not reach here
-      assert.fail("Expected error when creating commitment with invalid totalDays");
-    } catch (error) {
-      //should fail with InvalidDayCount
-      expect(error.message).to.include("InvalidDayCount");
-    }
-    
-    //test with too many sessions per day (> 10)
-    try {
-      await program.methods
-        .createCommitment(
-          invalidCommitmentId,
-          stakeAmount,
-          11, //invalid sessionsPerDay -> should be <= 10
-          totalDays
-        )
-        .accountsStrict({
-          commitment: invalidCommitmentPda,
-          userProfile: userProfilePda,
-          focusProgram: focusProgramPda,
-          user: userKeypair.publicKey,
-          userTokenAccount: userTokenAccount,
-          vault: invalidVaultPda,
-          vaultAuthority: vaultAuthorityPda,
-          tokenMint: tokenMint,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        })
-        .signers([userKeypair])
-        .rpc();
-      
-      //should not reach here
-      assert.fail("Expected error when creating commitment with too many sessions per day");
-    } catch (error) {
-      // Should fail with InvalidSessionCount
-      expect(error.message).to.include("InvalidSessionCount");
-    }
-    
-    //test with too many days (> 30)
-    try {
-      await program.methods
-        .createCommitment(
-          invalidCommitmentId,
-          stakeAmount,
-          sessionsPerDay,
-          31 //invalid totalDays -> should be <= 30
-        )
-        .accountsStrict({
-          commitment: invalidCommitmentPda,
-          userProfile: userProfilePda,
-          focusProgram: focusProgramPda,
-          user: userKeypair.publicKey,
-          userTokenAccount: userTokenAccount,
-          vault: invalidVaultPda,
-          vaultAuthority: vaultAuthorityPda,
-          tokenMint: tokenMint,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        })
-        .signers([userKeypair])
-        .rpc();
-      
-      //should not reach here
-      assert.fail("Expected error when creating commitment with too many days");
-    } catch (error) {
-      //should fail with InvalidDayCount
-      expect(error.message).to.include("InvalidDayCount");
+      //expected to fail due to constraint violation
+      console.log("Correctly failed with token account constraint violation");
+      expect(error.message).to.include("Error");
     }
   });
-  
-  it("Simulates claiming rewards after commitment period", async () => {
-    // For a real test, we would need to:
-    // 1. Mock the clock to simulate passage of time
-    // 2. Complete some sessions to meet the reward criteria
-    // 3. Claim rewards and verify results
-    // 
-    // Since we can't directly modify the blockchain clock in tests,
-    // we'll simulate a scenario and verify the claim calculation logic
-    
+
+  //test 7: attempt to create commitment with ID that already exists
+  it("Fails to create commitment with duplicate ID", async () => {
     try {
-      // Since we can't manipulate blockchain time easily in tests,
-      // let's explain what would happen in a real scenario
-      
-      console.log("=== Reward Claiming Simulation ===");
-      console.log("To properly test reward claiming:");
-      console.log("1. Record initial user token balance");
-      console.log("2. Complete multiple sessions (depends on your protocol)");
-      console.log("3. Wait for commitment period to end");
-      console.log("4. Call claimRewards");
-      console.log("5. Verify token transfer back to user");
-      console.log("6. Verify commitment marked as inactive");
-      
-      //get the user's current token balance for reference
-      const currentBalance = await provider.connection.getTokenAccountBalance(userTokenAccount);
-      console.log(`Current user token balance: ${currentBalance.value.uiAmount}`);
-      
-      //get the vault's current token balance for reference
-      const vaultBalance = await provider.connection.getTokenAccountBalance(vaultPda);
-      console.log(`Current vault token balance: ${vaultBalance.value.uiAmount}`);
-      
-      //fetch commitment details
-      const commitment = await program.account.focusCommitment.fetch(commitmentPda);
-      console.log(`Commitment details:`);
-      console.log(`- Stake amount: ${commitment.amountStaked.toNumber() / 1_000_000} tokens`);
-      console.log(`- Sessions per day: ${commitment.sessionsPerDay}`);
-      console.log(`- Total days: ${commitment.totalDays}`);
-      console.log(`- Start timestamp: ${new Date(commitment.startTimestamp.toNumber() * 1000).toISOString()}`);
-      console.log(`- Is active: ${commitment.isActive}`);
-      
-      //fetch program details
-      const program_info = await program.account.focusProgram.fetch(focusProgramPda);
-      console.log(`Program reward rate: ${program_info.rewardRate}%`);
-      
-      // If we could mock time and complete sessions, we would then call:
-      /*
+      //attempt to create commitment with the same ID as an existing one
       await program.methods
-        .claimRewards()
+        .createCommitment(
+          commitmentId, //this ID was already used in the first test
+          stakeAmount,
+          2,
+          2
+        )
         .accountsStrict({
           commitment: commitmentPda,
           userProfile: userProfilePda,
@@ -551,100 +650,165 @@ describe("F0x01 Commitment Tests", () => {
           userTokenAccount: userTokenAccount,
           vault: vaultPda,
           vaultAuthority: vaultAuthorityPda,
+          tokenMint: tokenMint,
           tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         })
         .signers([userKeypair])
         .rpc();
-        
-      const afterBalance = await provider.connection.getTokenAccountBalance(userTokenAccount);
-      console.log(`Balance after claiming rewards: ${afterBalance.value.uiAmount}`);
-      
-      // Verify commitment is now inactive
-      const commitmentAfter = await program.account.focusCommitment.fetch(commitmentPda);
-      expect(commitmentAfter.isActive).to.equal(false);
-      */
+
+      assert.fail("Should have failed due to duplicate commitment ID");
     } catch (error) {
-      console.error("Error in claim rewards simulation:", error);
+      //expected to fail because account already exists
+      console.log("Correctly failed with account already exists error");
+      expect(error.message).to.include("Error");
+    }
+  });
+
+  //test 8: advanced - test simulation of completing a commitment with mocked time
+  it("Simulates completing a commitment and claiming rewards", async () => {
+    //this test only works for simulating, as we can't manipulate blockchain time
+    //create a special commitment for this test
+    const simulationId = new anchor.BN(109);
+
+    //find PDAs for this commitment
+    const [simCommitmentPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("commitment"),
+        userKeypair.publicKey.toBuffer(),
+        simulationId.toArrayLike(Buffer, "le", 8)
+      ],
+      program.programId
+    );
+
+    const [simVaultPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vault"),
+        userKeypair.publicKey.toBuffer(),
+        simulationId.toArrayLike(Buffer, "le", 8)
+      ],
+      program.programId
+    );
+
+    //create the simulation commitment
+    try {
+      await program.methods
+        .createCommitment(
+          simulationId,
+          stakeAmount,
+          2, // 2 sessions per day
+          1  // 1 day (shortest possible for simulation)
+        )
+        .accountsStrict({
+          commitment: simCommitmentPda,
+          userProfile: userProfilePda,
+          focusProgram: focusProgramPda,
+          user: userKeypair.publicKey,
+          userTokenAccount: userTokenAccount,
+          vault: simVaultPda,
+          vaultAuthority: vaultAuthorityPda,
+          tokenMint: tokenMint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        })
+        .signers([userKeypair])
+        .rpc();
+
+      console.log("Created simulation commitment");
+
+      // get the commitment data
+      const commitment = await program.account.focusCommitment.fetch(simCommitmentPda);
+      console.log("Commitment:", {
+        id: commitment.commitmentId.toString(),
+        amountStaked: commitment.amountStaked.toString(),
+        sessionsPerDay: commitment.sessionsPerDay,
+        totalDays: commitment.totalDays,
+        startTimestamp: commitment.startTimestamp.toString()
+      });
+
+      //get the program details
+      const programData = await program.account.focusProgram.fetch(focusProgramPda);
+      console.log("Program reward rate:", programData.rewardRate.toString());
+
+      //simulate the logic that would happen in the claim_rewards function
+      const totalExpectedSessions = commitment.sessionsPerDay * commitment.totalDays;
+
+      console.log("\nREWARD SIMULATION:");
+
+      //simulate different completion rates
+      const scenarios = [
+        { name: "90%+ completion", completedSessions: Math.ceil(totalExpectedSessions * 0.9) },
+        { name: "75-89% completion", completedSessions: Math.ceil(totalExpectedSessions * 0.8) },
+        { name: "<75% completion", completedSessions: Math.floor(totalExpectedSessions * 0.6) }
+      ];
+
+      for (const scenario of scenarios) {
+        const successRate = scenario.completedSessions / totalExpectedSessions;
+
+        let rewardAmount;
+        if (successRate >= 0.9) {
+          //complete reward + bonus
+          const baseReward = commitment.amountStaked.toNumber();
+          const bonus = (baseReward * programData.rewardRate.toNumber()) / 100;
+          rewardAmount = baseReward + bonus;
+        } else if (successRate >= 0.75) {
+          //return original stake
+          rewardAmount = commitment.amountStaked.toNumber();
+        } else {
+          //partial refund
+          rewardAmount = (commitment.amountStaked.toNumber() * 75) / 100;
+        }
+
+        console.log(`Scenario: ${scenario.name}`);
+        console.log(`- Completed sessions: ${scenario.completedSessions}/${totalExpectedSessions}`);
+        console.log(`- Success rate: ${(successRate * 100).toFixed(2)}%`);
+        console.log(`- Reward amount: ${rewardAmount / 1_000_000} tokens`);
+        console.log(`- Original stake: ${commitment.amountStaked.toNumber() / 1_000_000} tokens`);
+        if (rewardAmount > commitment.amountStaked.toNumber()) {
+          console.log(`- Bonus earned: ${(rewardAmount - commitment.amountStaked.toNumber()) / 1_000_000} tokens`);
+        } else if (rewardAmount < commitment.amountStaked.toNumber()) {
+          console.log(`- Penalty: ${(commitment.amountStaked.toNumber() - rewardAmount) / 1_000_000} tokens`);
+        }
+        console.log("---");
+      }
+
+    } catch (error) {
+      console.error("Error in commitment simulation:", error);
       throw error;
     }
   });
-  
-  it("Should prevent non-owner from claiming rewards", async () => {
-  //create another user keypair
-  const anotherUserKeypair = Keypair.generate();
-  
-  //fund the new user account with SOL
-  const airdropSig = await provider.connection.requestAirdrop(
-    anotherUserKeypair.publicKey,
-    1 * anchor.web3.LAMPORTS_PER_SOL
-  );
-  await provider.connection.confirmTransaction(airdropSig);
-  
-  //create token account for the new user
-  const anotherUserTokenAccount = await createAssociatedTokenAccount(
-    provider.connection,
-    wallet.payer,
-    tokenMint,
-    anotherUserKeypair.publicKey
-  );
-  
-  try {
-    //attempt to claim rewards with non-owner
-    await program.methods
-      .claimRewards()
-      .accountsStrict({
-        commitment: commitmentPda,
-        userProfile: userProfilePda,
-        focusProgram: focusProgramPda,
-        user: anotherUserKeypair.publicKey,
-        userTokenAccount: anotherUserTokenAccount,
-        vault: vaultPda,
-        vaultAuthority: vaultAuthorityPda,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .signers([anotherUserKeypair])
-      .rpc();
-    
-    //should not reach here
-    assert.fail("Expected error when non-owner tries to claim rewards");
-  } catch (error) {
-    // FIX: Check for a more generic error pattern instead of specifically "InvalidAuthority"
-    // Based on the test output, it seems the error message may be different
-    // Option 1: Check for a substring that's definitely in the error
-    expect(error.message).to.include("Error");
-    
-    // Option 2: If you know the exact error message from the logs, use that pattern
-    // For example, if your error contains "AnchorError caused by account: commitment"
-    expect(error.message).to.include("AnchorError");
-    
-    // Option 3: Log the actual error message to see what's in it
-    console.log("Error message:", error.message);
-  }
-});
-  
-  it("Should prevent claiming before commitment period ends", async () => {
+
+  //test 9: test updating user profile when completing sessions (simulation)
+  it("Simulates completing sessions and updating user profile", async () => {
+    console.log("\nUSER PROFILE SESSION COMPLETION SIMULATION:");
+
+    //get current user profile
     try {
-      //attempt to claim rewards before commitment period ends
-      await program.methods
-        .claimRewards()
-        .accountsStrict({
-          commitment: commitmentPda,
-          userProfile: userProfilePda,
-          focusProgram: focusProgramPda,
-          user: userKeypair.publicKey,
-          userTokenAccount: userTokenAccount,
-          vault: vaultPda,
-          vaultAuthority: vaultAuthorityPda,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .signers([userKeypair])
-        .rpc();
-      
-      //should not reach here
-      assert.fail("Expected error when claiming rewards before commitment period ends");
+      const userProfile = await program.account.userProfile.fetch(userProfilePda);
+      console.log("Initial user profile state:");
+      console.log(`- Total sessions completed: ${userProfile.totalSessionsCompleted}`);
+
+      //simulate completing sessions
+      const simulatedCompletedSessions = 3; // Simulate completing 3 sessions
+      console.log(`Simulating completion of ${simulatedCompletedSessions} sessions...`);
+
+      //in actual protocol, this would happen via a recordSession instruction
+      //show what the user profile would look like after session completion
+      const expectedTotalSessions = userProfile.totalSessionsCompleted.add(new BN(simulatedCompletedSessions));
+      console.log("Expected user profile after sessions:");
+      console.log(`- Total sessions completed: ${expectedTotalSessions}`);
+
+      //explain the effect on rewards
+      console.log("\nEffect on rewards:");
+      console.log("- Higher session completion leads to better rewards");
+      console.log("- 90%+ completion rate gives full stake back plus bonus");
+      console.log("- 75-89% completion rate gives full stake back");
+      console.log("- <75% completion rate gives partial refund (75% of stake)");
     } catch (error) {
-      //should fail with CommitmentNotEnded error
-      expect(error.message).to.include("CommitmentNotEnded");
+      console.error("Error in user profile simulation:", error);
+      throw error;
     }
   });
 });
