@@ -11,7 +11,7 @@ pub mod state;
 pub use constants::*;
 pub use state::*;
 
-declare_id!("2UimA9XeFtc4e16WnkwaFkhv8KSQdWr7CGEKk7hDpKea");
+declare_id!("5zbzYLKziAmPUMv25xHo4XWkbbAsp21q6D5EM7J9c6r6");
 
 #[program]
 pub mod f0x01 {

@@ -5,14 +5,17 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-f0x01 = "2UimA9XeFtc4e16WnkwaFkhv8KSQdWr7CGEKk7hDpKea"
+# f0x01 = "2UimA9XeFtc4e16WnkwaFkhv8KSQdWr7CGEKk7hDpKea"
+
+# [programs.devnet]
+f0x01 = "5zbzYLKziAmPUMv25xHo4XWkbbAsp21q6D5EM7J9c6r6"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "localnet"
+wallet = "./wallet.json"
 
 [scripts]
 # runs test in specific order.
