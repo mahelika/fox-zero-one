@@ -80,8 +80,8 @@ describe("F0x01 User Tests", () => {
     );
 
     // Fund test users (avoid airdrops to prevent rate limiting)
-    await fundWallet(user1.publicKey, 2);
-    await fundWallet(user2.publicKey, 2);
+    await fundWallet(user1.publicKey, 0.1);
+    await fundWallet(user2.publicKey, 0.1);
 
     // Initialize the program first if not already initialized
     try {

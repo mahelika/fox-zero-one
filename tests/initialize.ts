@@ -124,7 +124,7 @@ describe("F0x01 Initialize Tests", () => {
     // Fund the new authority using your main wallet instead of an airdrop
     await fundWalletFromMain(
       differentAuthority.publicKey,
-      1000000000 // 1 SOL
+      100_000_000 // 0.1 SOL
     );
     
     // Find a different PDA for this test
