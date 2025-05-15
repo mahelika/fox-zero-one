@@ -15,7 +15,8 @@ url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
-wallet = "./wallet.json"
+# wallet = "./wallet.json"
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 # runs test in specific order.
