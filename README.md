@@ -35,6 +35,8 @@ F0x01 incentivizes productive behavior through a token staking mechanism:
 
 ## 🏗️ Architecture
 
+[View Architectural Diagram 🖼️](https://app.excalidraw.com/l/c7FOsgtYbd/6FObRHn4LIu)
+
 The protocol consists of the following main components:
 
 ### Program State
